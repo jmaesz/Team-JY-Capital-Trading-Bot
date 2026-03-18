@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { Badge } from "./components/ui/badge";
 import { cn } from "./lib/utils";
 
-const API = "https://enhancements-headers-funk-implied.trycloudflare.com";
+const API = "https://outdoor-outer-warming-buf.trycloudflare.com";
 
 // ── Coin icon with letter fallback ────────────────────────────────────────────
 const ICON_BASE = "https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@master/svg/color";
