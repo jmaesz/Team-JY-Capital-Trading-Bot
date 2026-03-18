@@ -74,6 +74,17 @@ def get_peak() -> float:
     return _state.get("peak_portfolio", 0.0)
 
 
+def reset_state(baseline: float = 0.0) -> None:
+    """Clear in-memory and on-disk state. Called on dashboard reset."""
+    global _state
+    _state = {"entry_prices": {}, "peak_portfolio": 0.0, "baseline": baseline}
+    _save_state(_state)
+
+
+def get_baseline() -> float:
+    return _state.get("baseline", 0.0)
+
+
 # ── Risk checks ────────────────────────────────────────────────────────────────
 
 def is_defensive_mode(current_portfolio: float) -> bool:
