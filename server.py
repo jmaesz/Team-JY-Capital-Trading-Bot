@@ -20,6 +20,7 @@ import math
 import os
 import subprocess
 import sys
+from typing import Optional, List, Dict
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
@@ -41,19 +42,19 @@ app.add_middleware(
 )
 
 INITIAL_WALLET = 50_000.0
-_bot_process: subprocess.Popen | None = None
+_bot_process: Optional[subprocess.Popen] = None
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
-def _read_trades() -> list[dict]:
+def _read_trades() -> List[dict]:
     if not os.path.exists(TRADE_LOG):
         return []
     with open(TRADE_LOG, newline="", encoding="utf-8") as f:
         return list(csv.DictReader(f))
 
 
-def _portfolio_series() -> list[float]:
+def _portfolio_series() -> List[float]:
     """Return portfolio values from trade log, oldest first."""
     rows = _read_trades()
     if not rows:

@@ -5,6 +5,7 @@ Provides OHLCV candlestick data for technical-indicator computation.
 
 import logging
 import time
+from typing import Dict, List
 
 import pandas as pd
 import requests
@@ -57,11 +58,11 @@ def fetch_klines(coin: str, interval: str, limit: int = LOOKBACK) -> pd.DataFram
 
 
 def fetch_all_klines(
-    coins: list[str],
+    coins: List[str],
     interval: str,
     limit: int = LOOKBACK,
     sleep_between: float = 0.1,
-) -> dict[str, pd.DataFrame]:
+) -> Dict[str, pd.DataFrame]:
     """
     Fetch klines for a list of coins.
     Returns {coin: DataFrame}. Missing/failed coins are excluded.

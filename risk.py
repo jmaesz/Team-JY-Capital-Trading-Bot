@@ -13,6 +13,7 @@ import json
 import logging
 import os
 from datetime import datetime, timezone
+from typing import Optional
 
 from config import (
     HARD_STOP_LOSS_PCT,
@@ -48,7 +49,7 @@ def _save_state(state: dict) -> None:
 _state = _load_state()
 
 
-def get_entry_price(coin: str) -> float | None:
+def get_entry_price(coin: str) -> Optional[float]:
     return _state["entry_prices"].get(coin)
 
 

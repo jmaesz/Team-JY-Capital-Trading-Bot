@@ -13,7 +13,7 @@ Component weights
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Dict
 
 import pandas as pd
 
@@ -113,9 +113,9 @@ def compute_signal(
 
 
 def compute_all_signals(
-    klines_short: dict[str, pd.DataFrame],
-    klines_long:  dict[str, pd.DataFrame],
-) -> dict[str, float]:
+    klines_short: Dict[str, pd.DataFrame],
+    klines_long:  Dict[str, pd.DataFrame],
+) -> Dict[str, float]:
     """
     Returns {coin: signal_score} for every coin with sufficient data.
     """
@@ -131,12 +131,12 @@ def compute_all_signals(
 
 
 def compute_target_allocations(
-    signals:          dict[str, float],
+    signals:          Dict[str, float],
     portfolio_value:  float,
-    current_prices:   dict[str, float],
-    current_holdings: dict[str, float],   # {coin: usd_value_held}
+    current_prices:   Dict[str, float],
+    current_holdings: Dict[str, float],   # {coin: usd_value_held}
     defensive_mode:   bool,
-) -> dict[str, float]:
+) -> Dict[str, float]:
     """
     Convert signal scores into target USD allocations per coin.
 
@@ -152,7 +152,7 @@ def compute_target_allocations(
     if defensive_mode:
         return {coin: 0.0 for coin in signals}
 
-    targets: dict[str, float] = {}
+    targets: Dict[str, float] = {}
 
     # Filter coins with a bullish signal above threshold
     candidates = {

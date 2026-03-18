@@ -21,6 +21,7 @@ The bot loops indefinitely every TRADE_INTERVAL_SECONDS seconds.
 import logging
 import time
 from datetime import datetime, timezone
+from typing import Dict, List, Set, Tuple
 
 import api
 import data as mkt
@@ -106,7 +107,7 @@ def compute_portfolio_value(
     return total, coin_values
 
 
-def get_active_coins(watchlist: list[str], available_pairs: set[str]) -> list[str]:
+def get_active_coins(watchlist: List[str], available_pairs: Set[str]) -> List[str]:
     return [c for c in watchlist if c in available_pairs]
 
 
@@ -158,7 +159,7 @@ def execute_buy(
 
 # ── Main trading cycle ─────────────────────────────────────────────────────────
 
-def run_cycle(tradeable_coins: list[str], precisions: dict[str, int]) -> None:
+def run_cycle(tradeable_coins: List[str], precisions: Dict[str, int]) -> None:
     logger.info("─── Cycle start %s ───", datetime.now(timezone.utc).isoformat(timespec="seconds"))
 
     # 1. Balance & prices
