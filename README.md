@@ -1,7 +1,8 @@
 # Team JY Capital — Roostoo Trading Bot
 
-> Autonomous AI-driven trading bot for the **SG vs HK University Web3 Quant Hackathon**
-> Built on the Roostoo mock exchange · Targets strong Sortino, Sharpe & Calmar ratios
+> Crypto Trading Bot (NUS Investment Society Web3 Quant Trading Hackathon) built on the Roostoo mock exchange, using multi-signal strategies across 15 crypto pairs to maximise risk-adjusted returns.
+
+**Live Dashboard:** https://teamjycapital.vercel.app/
 
 ---
 
