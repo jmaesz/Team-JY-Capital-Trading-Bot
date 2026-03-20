@@ -20,7 +20,7 @@ MIN_TRADE_USD          = 100        # ignore rebalance deltas below $100
 
 # ── Risk controls ──────────────────────────────────────────────────────────────
 HARD_STOP_LOSS_PCT          = 0.07   # sell if position drops 7 % from entry
-MAX_DRAWDOWN_PCT             = 0.15  # go fully defensive at 15 % portfolio drawdown
+MAX_DRAWDOWN_PCT             = 0.35  # go fully defensive at 35 % portfolio drawdown
 TRAILING_STOP_ACTIVATE_PCT  = 0.05  # start trailing once position is up 5 %
 TRAILING_STOP_PCT            = 0.04  # trail 4 % below running peak price
 
