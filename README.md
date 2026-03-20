@@ -32,7 +32,7 @@ Each coin gets a composite signal score from -1 (strong sell) to +1 (strong buy)
 
 **4. Decide target allocations**
 
-Using the scores, it picks the top 5 coins with positive signals and assigns each a USD allocation proportional to how strong their signal is, capped at 28% of the portfolio per coin, always keeping 10% in USD cash.
+Using the scores, it picks the top 3 coins with positive signals (score > 0.45) and assigns each a USD allocation proportional to how strong their signal is, capped at 25% of the portfolio per coin (10% for high-beta alts), always keeping 10% in USD cash.
 
 **5. Risk checks**
 
@@ -55,9 +55,10 @@ Every trade is written to `logs/trades.csv` with timestamp, coin, quantity, pric
 
 | Rule | Value |
 |------|-------|
-| Max position per coin | 28% of portfolio |
+| Max position per coin | 25% of portfolio (10% for high-beta alts) |
+| High-beta coins | DOGE, SUI, TON, NEAR |
 | Minimum USD reserve | 10% always in cash |
-| Max simultaneous positions | 5 coins |
+| Max simultaneous positions | 3 coins |
 | Minimum order size | $100 |
 
 ---
@@ -67,6 +68,8 @@ Every trade is written to `logs/trades.csv` with timestamp, coin, quantity, pric
 | Trigger | Action |
 |---------|--------|
 | Position drops **7%** from entry | Hard stop-loss, full exit |
+| Position rises **5%** from entry | Trailing stop activates |
+| Trailing stop trails **4%** below peak price | Locks in profits on the way down |
 | Portfolio drawdown exceeds **15%** from peak | Defensive mode, sell all and hold USD |
 | Composite signal score falls below **-0.10** | Signal exit, close position |
 
@@ -99,10 +102,10 @@ Team-JY-Capital-Trading-Bot/
 
 ---
 
-## Watchlist (15 coins)
+## Watchlist (14 coins)
 
 ```
-BTC  ETH  BNB  SOL  XRP  ADA  AVAX  LINK  DOT  UNI  DOGE  PEPE  SUI  TON  NEAR
+BTC  ETH  BNB  SOL  XRP  ADA  AVAX  LINK  DOT  UNI  DOGE  SUI  TON  NEAR
 ```
 
 ---
@@ -113,12 +116,12 @@ BTC  ETH  BNB  SOL  XRP  ADA  AVAX  LINK  DOT  UNI  DOGE  PEPE  SUI  TON  NEAR
 # 1. Install dependencies
 pip install -r requirements.txt
 
-# 2. Add credentials to .env
-API_KEY = "YOUR_KEY"
-SECRET  = "YOUR_SECRET"
+# 2. Add credentials to .env (no spaces, no quotes)
+API_KEY=YOUR_KEY
+SECRET=YOUR_SECRET
 
 # 3. Start the bot
-python bot.py
+py bot.py
 ```
 
 All trades are logged to `logs/trades.csv` · Full debug output in `logs/bot.log`

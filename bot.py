@@ -41,6 +41,7 @@ from risk import (
     record_entry,
     clear_entry,
     update_peak,
+    update_position_peak,
     usd_to_qty,
     qty_to_usd,
     is_tradeable,
@@ -215,6 +216,8 @@ def run_cycle(tradeable_coins: List[str], precisions: Dict[str, int]) -> None:
         if coin == "USD":
             continue
         price = prices.get(coin, 0.0)
+        if price > 0:
+            update_position_peak(coin, price)   # ratchet trailing stop peak
         if price > 0 and should_stop_loss(coin, price):
             qty_rounded = round(qty, precisions.get(coin, 6))
             execute_sell(coin, qty_rounded, price, signals.get(coin, -1.0), portfolio_value, "stop_loss")

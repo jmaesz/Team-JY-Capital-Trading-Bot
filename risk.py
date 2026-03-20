@@ -18,6 +18,8 @@ from typing import Optional
 from config import (
     HARD_STOP_LOSS_PCT,
     MAX_DRAWDOWN_PCT,
+    TRAILING_STOP_ACTIVATE_PCT,
+    TRAILING_STOP_PCT,
     STATE_FILE,
     MIN_TRADE_USD,
 )
@@ -34,7 +36,7 @@ def _load_state() -> dict:
                 return json.load(f)
         except Exception:
             pass
-    return {"entry_prices": {}, "peak_portfolio": 0.0}
+    return {"entry_prices": {}, "peak_prices": {}, "peak_portfolio": 0.0}
 
 
 def _save_state(state: dict) -> None:
@@ -55,12 +57,22 @@ def get_entry_price(coin: str) -> Optional[float]:
 
 def record_entry(coin: str, price: float) -> None:
     _state["entry_prices"][coin] = price
+    _state.setdefault("peak_prices", {})[coin] = price   # reset trailing peak
     _save_state(_state)
 
 
 def clear_entry(coin: str) -> None:
     _state["entry_prices"].pop(coin, None)
+    _state.get("peak_prices", {}).pop(coin, None)
     _save_state(_state)
+
+
+def update_position_peak(coin: str, current_price: float) -> None:
+    """Ratchet up the peak price seen for an open position (used by trailing stop)."""
+    peaks = _state.setdefault("peak_prices", {})
+    if current_price > peaks.get(coin, 0.0):
+        peaks[coin] = current_price
+        _save_state(_state)
 
 
 def update_peak(portfolio_value: float) -> float:
@@ -105,17 +117,40 @@ def is_defensive_mode(current_portfolio: float) -> bool:
 
 
 def should_stop_loss(coin: str, current_price: float) -> bool:
-    """Return True if the position has fallen past the hard stop-loss."""
+    """
+    Return True if position should be stopped out.
+
+    Two triggers:
+    1. Hard stop-loss:  price has fallen ≥ HARD_STOP_LOSS_PCT from entry.
+    2. Trailing stop:   once the position is up ≥ TRAILING_STOP_ACTIVATE_PCT,
+                        exit if price falls ≥ TRAILING_STOP_PCT from the
+                        running peak price seen since entry.
+    """
     entry = get_entry_price(coin)
     if entry is None or entry <= 0:
         return False
+
+    # 1 — Hard stop
     loss_pct = (entry - current_price) / entry
     if loss_pct >= HARD_STOP_LOSS_PCT:
         logger.warning(
-            "STOP-LOSS triggered for %s: entry=%.6f current=%.6f loss=%.2f%%",
+            "HARD STOP-LOSS %s: entry=%.6f current=%.6f loss=%.2f%%",
             coin, entry, current_price, loss_pct * 100,
         )
         return True
+
+    # 2 — Trailing stop (only activates once trade is profitable enough)
+    peak = _state.get("peak_prices", {}).get(coin, entry)
+    gain_from_entry = (peak - entry) / entry
+    if gain_from_entry >= TRAILING_STOP_ACTIVATE_PCT:
+        trail_stop_price = peak * (1.0 - TRAILING_STOP_PCT)
+        if current_price <= trail_stop_price:
+            logger.warning(
+                "TRAILING STOP %s: entry=%.6f peak=%.6f current=%.6f trail_stop=%.6f",
+                coin, entry, peak, current_price, trail_stop_price,
+            )
+            return True
+
     return False
 
 

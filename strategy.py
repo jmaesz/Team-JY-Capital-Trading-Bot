@@ -22,6 +22,8 @@ from config import (
     BUY_THRESHOLD,
     SELL_THRESHOLD,
     MAX_POSITION_PCT,
+    HIGH_BETA_MAX_PCT,
+    HIGH_BETA_COINS,
     MIN_USD_RESERVE_PCT,
     MAX_ACTIVE_POSITIONS,
 )
@@ -96,11 +98,15 @@ def compute_signal(
         bb_sig = 0.0
     score += 0.15 * bb_sig
 
-    # 5 ── Long-TF trend filter (weight 0.15) ─────────────────────────────────
+    # 5 ── Long-TF trend filter — HARD GATE (weight 0.15) ────────────────────
     ema20_l = ema(close_l, 20).iloc[-1]
     ema50_l = ema(close_l, 50).iloc[-1]
-    trend_sig = 1.0 if ema20_l > ema50_l else -0.5   # asymmetric: punish downtrend less
-    score += 0.15 * trend_sig
+    if ema20_l <= ema50_l:
+        # Bearish 1h trend: hard block – no bullish trade allowed.
+        # Return a strongly negative score to prevent any buy signal.
+        logger.debug("Hard trend gate: 1h bearish – forcing negative score.")
+        return float(max(-1.0, min(1.0, score - 0.60)))
+    score += 0.15 * 1.0   # uptrend confirmed
 
     # 6 ── Volume confirmation (bonus/penalty, ±0.05) ──────────────────────────
     vol_r = volume_ratio(df_short, 20).iloc[-1]
@@ -168,7 +174,6 @@ def compute_target_allocations(
         return {coin: 0.0 for coin in signals}
 
     investable_usd   = portfolio_value * (1.0 - MIN_USD_RESERVE_PCT)
-    max_per_coin_usd = portfolio_value * MAX_POSITION_PCT
 
     # Weight by signal score (scores are all positive here)
     total_score = sum(candidates[c] for c in top_coins)
@@ -177,6 +182,9 @@ def compute_target_allocations(
 
     for coin in signals:
         if coin in top_coins:
+            # High-beta alts get a tighter position cap
+            cap_pct = HIGH_BETA_MAX_PCT if coin in HIGH_BETA_COINS else MAX_POSITION_PCT
+            max_per_coin_usd = portfolio_value * cap_pct
             weight = candidates[coin] / total_score
             targets[coin] = min(investable_usd * weight, max_per_coin_usd)
         else:

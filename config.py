@@ -12,18 +12,22 @@ BASE_URL = "https://mock-api.roostoo.com"
 TRADE_INTERVAL_SECONDS = 300        # main loop cadence: every 5 minutes
 
 # ── Position / allocation limits ──────────────────────────────────────────────
-MAX_POSITION_PCT       = 0.28       # max 28 % of portfolio in any single coin
+MAX_POSITION_PCT       = 0.25       # max 25 % of portfolio in any single coin
+HIGH_BETA_MAX_PCT      = 0.10       # max 10 % for high-volatility alts
+HIGH_BETA_COINS        = {"DOGE", "SUI", "TON", "NEAR"}   # reduced-size coins
 MIN_USD_RESERVE_PCT    = 0.10       # always keep ≥ 10 % in USD cash
 MIN_TRADE_USD          = 100        # ignore rebalance deltas below $100
 
 # ── Risk controls ──────────────────────────────────────────────────────────────
-HARD_STOP_LOSS_PCT     = 0.07       # sell if position drops 7 % from entry
-MAX_DRAWDOWN_PCT       = 0.15       # go fully defensive at 15 % portfolio drawdown
+HARD_STOP_LOSS_PCT          = 0.07   # sell if position drops 7 % from entry
+MAX_DRAWDOWN_PCT             = 0.15  # go fully defensive at 15 % portfolio drawdown
+TRAILING_STOP_ACTIVATE_PCT  = 0.05  # start trailing once position is up 5 %
+TRAILING_STOP_PCT            = 0.04  # trail 4 % below running peak price
 
 # ── Strategy signal thresholds ─────────────────────────────────────────────────
-BUY_THRESHOLD          = 0.15       # composite score > 0.15 → eligible to hold
+BUY_THRESHOLD          = 0.45       # composite score > 0.45 → eligible to hold
 SELL_THRESHOLD         = -0.10      # composite score < -0.10 → exit position
-MAX_ACTIVE_POSITIONS   = 5          # keep at most 5 coins at once
+MAX_ACTIVE_POSITIONS   = 3          # keep at most 3 coins at once
 
 # ── Data sources ───────────────────────────────────────────────────────────────
 BINANCE_BASE  = "https://api.binance.com"
@@ -37,8 +41,8 @@ WATCHLIST = [
     "BTC", "ETH", "BNB", "SOL", "XRP",
     # Mid-caps (higher momentum potential)
     "ADA", "AVAX", "LINK", "DOT", "UNI",
-    # High-beta altcoins (selective use)
-    "DOGE", "PEPE", "SUI", "TON", "NEAR",
+    # High-beta altcoins (reduced position size – see HIGH_BETA_MAX_PCT)
+    "DOGE", "SUI", "TON", "NEAR",
 ]
 
 # ── Logging ────────────────────────────────────────────────────────────────────
