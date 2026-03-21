@@ -24,7 +24,7 @@ Each coin gets a composite signal score from -1 (strong sell) to +1 (strong buy)
 | # | Component | Timeframe | Weight | Signal Logic |
 |---|-----------|-----------|--------|--------------|
 | 1 | EMA Crossover | 5 m | 25% | EMA-12 > EMA-26 means bullish |
-| 2 | RSI | 5 m | 25% | < 35 means buy · > 65 means sell · linear between |
+| 2 | RSI | 5 m | 25% | < 30 means buy · > 70 means sell · linear between |
 | 3 | MACD | 5 m | 20% | MACD vs signal line + histogram momentum |
 | 4 | Bollinger Bands | 5 m | 15% | Near lower band means buy · near upper means sell |
 | 5 | Trend Filter | 1 h | 15% | EMA-20 vs EMA-50 for long-term direction |
@@ -32,13 +32,14 @@ Each coin gets a composite signal score from -1 (strong sell) to +1 (strong buy)
 
 **4. Decide target allocations**
 
-Using the scores, it picks the top 3 coins with positive signals (score > 0.45) and assigns each a USD allocation proportional to how strong their signal is, capped at 25% of the portfolio per coin (10% for high-beta alts), always keeping 10% in USD cash.
+Using the scores, it picks the top 3 coins with positive signals (score > 0.20) and assigns each a USD allocation proportional to how strong their signal is, capped at 25% of the portfolio per coin (10% for high-beta alts), always keeping 10% in USD cash.
 
 **5. Risk checks**
 
 Before trading, it checks:
 - Has any open position dropped **7%** from where it was bought? Triggers a force sell (stop-loss)
-- Has the overall portfolio dropped **15%** from its peak? Sells everything and sits in cash (defensive mode)
+- Has the overall portfolio dropped **35%** from its peak? Sells everything and sits in cash (defensive mode)
+- Would selling this position generate less profit than the round-trip commission (0.1% buy + 0.1% sell)? Skips the sell to avoid fee-eating trades
 
 **6. Execute trades**
 - Sells first to free up USD: any coin whose signal turned bearish, or whose position needs to be reduced
@@ -70,8 +71,9 @@ Every trade is written to `logs/trades.csv` with timestamp, coin, quantity, pric
 | Position drops **7%** from entry | Hard stop-loss, full exit |
 | Position rises **5%** from entry | Trailing stop activates |
 | Trailing stop trails **4%** below peak price | Locks in profits on the way down |
-| Portfolio drawdown exceeds **15%** from peak | Defensive mode, sell all and hold USD |
-| Composite signal score falls below **-0.10** | Signal exit, close position |
+| Portfolio drawdown exceeds **35%** from peak | Defensive mode, sell all and hold USD |
+| Composite signal score falls below **-0.20** | Signal exit, close position |
+| Sell profit ≤ round-trip commission (0.2% total) | Skip sell, hold until profitable to exit |
 
 ---
 

@@ -25,9 +25,12 @@ TRAILING_STOP_ACTIVATE_PCT  = 0.05  # start trailing once position is up 5 %
 TRAILING_STOP_PCT            = 0.04  # trail 4 % below running peak price
 
 # ── Strategy signal thresholds ─────────────────────────────────────────────────
-BUY_THRESHOLD          = 0.45       # composite score > 0.45 → eligible to hold
-SELL_THRESHOLD         = -0.10      # composite score < -0.10 → exit position
+BUY_THRESHOLD          = 0.20       # composite score > 0.20 → eligible to hold
+SELL_THRESHOLD         = -0.20      # composite score < -0.20 → exit position
 MAX_ACTIVE_POSITIONS   = 3          # keep at most 3 coins at once
+
+# ── Commission ──────────────────────────────────────────────────────────────────
+COMMISSION_RATE        = 0.001      # 0.1% taker fee per trade (buy + sell)
 
 # ── Data sources ───────────────────────────────────────────────────────────────
 BINANCE_BASE  = "https://api.binance.com"

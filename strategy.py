@@ -69,13 +69,13 @@ def compute_signal(
     rsi_val = rsi(close_s, 14).iloc[-1]
     if pd.isna(rsi_val):
         rsi_sig = 0.0
-    elif rsi_val < 35:
+    elif rsi_val < 30:
         rsi_sig = 1.0
-    elif rsi_val > 65:
+    elif rsi_val > 70:
         rsi_sig = -1.0
     else:
-        # linear: 0 at 50, +1 at 35, -1 at 65
-        rsi_sig = -(rsi_val - 50.0) / 15.0
+        # linear: 0 at 50, +1 at 30, -1 at 70
+        rsi_sig = -(rsi_val - 50.0) / 20.0
     score += 0.25 * rsi_sig
 
     # 3 ── MACD on short TF (weight 0.20) ─────────────────────────────────────

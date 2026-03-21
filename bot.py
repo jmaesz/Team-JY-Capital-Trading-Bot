@@ -33,6 +33,7 @@ from config import (
     LOOKBACK,
     SELL_THRESHOLD,
     MIN_TRADE_USD,
+    COMMISSION_RATE,
 )
 from logger_setup import setup_logging, log_trade
 from risk import (
@@ -45,6 +46,7 @@ from risk import (
     usd_to_qty,
     qty_to_usd,
     is_tradeable,
+    get_entry_price,
 )
 from strategy import compute_all_signals, compute_target_allocations
 
@@ -110,6 +112,18 @@ def compute_portfolio_value(
 
 def get_active_coins(watchlist: List[str], available_pairs: Set[str]) -> List[str]:
     return [c for c in watchlist if c in available_pairs]
+
+
+# ── Commission filter ──────────────────────────────────────────────────────────
+
+def covers_commission(coin: str, qty: float, current_price: float) -> bool:
+    """Return True if gross profit on this sell exceeds total round-trip commission."""
+    entry = get_entry_price(coin)
+    if entry is None:
+        return True  # no entry tracked, allow sell
+    gross_profit = (current_price - entry) * qty
+    total_commission = (entry + current_price) * qty * COMMISSION_RATE
+    return gross_profit > total_commission
 
 
 # ── Order execution ────────────────────────────────────────────────────────────
@@ -249,7 +263,11 @@ def run_cycle(tradeable_coins: List[str], precisions: Dict[str, int]) -> None:
 
         # Force sell if signal is bearish regardless of target
         if score < SELL_THRESHOLD and current_usd > MIN_TRADE_USD:
-            sells.append((coin, holdings.get(coin, 0.0), price, score, "bearish_signal"))
+            sell_qty = holdings.get(coin, 0.0)
+            if covers_commission(coin, sell_qty, price):
+                sells.append((coin, sell_qty, price, score, "bearish_signal"))
+            else:
+                logger.info("SKIP SELL %s – profit would not cover commission.", coin)
             continue
 
         prec = precisions.get(coin, 6)
@@ -258,7 +276,7 @@ def run_cycle(tradeable_coins: List[str], precisions: Dict[str, int]) -> None:
             # Reduce position
             sell_usd = abs(delta_usd)
             sell_qty = usd_to_qty(sell_usd, price, prec)
-            if sell_qty > 0 and is_tradeable(sell_usd):
+            if sell_qty > 0 and is_tradeable(sell_usd) and covers_commission(coin, sell_qty, price):
                 sells.append((coin, sell_qty, price, score, "rebalance_reduce"))
 
         elif delta_usd > MIN_TRADE_USD:
