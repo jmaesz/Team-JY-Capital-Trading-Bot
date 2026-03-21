@@ -2,7 +2,6 @@
 
 > Crypto Trading Bot (NUS Investment Society Web3 Quant Trading Hackathon) built on the Roostoo mock exchange, using multi-signal strategies across 15 crypto pairs to maximise risk-adjusted returns.
 
-**Live Dashboard:** https://teamjycapital.vercel.app/
 
 ---
 
