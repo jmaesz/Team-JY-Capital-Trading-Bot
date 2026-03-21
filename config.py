@@ -6,7 +6,7 @@ load_dotenv()
 # ── Roostoo credentials ────────────────────────────────────────────────────────
 API_KEY  = os.getenv("API_KEY", "").strip()
 SECRET   = os.getenv("SECRET",  "").strip()
-BASE_URL = "https://mock-api.roostoo.com"
+BASE_URL = "https://api.roostoo.com"
 
 # ── Bot behaviour ──────────────────────────────────────────────────────────────
 TRADE_INTERVAL_SECONDS = 300        # main loop cadence: every 5 minutes
