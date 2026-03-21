@@ -41,7 +41,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-INITIAL_WALLET = 50_000.0
+INITIAL_WALLET = 1_000_000.0
 _bot_process: Optional[subprocess.Popen] = None
 
 
