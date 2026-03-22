@@ -16,7 +16,7 @@ MAX_POSITION_PCT       = 0.25       # max 25 % of portfolio in any single coin
 HIGH_BETA_MAX_PCT      = 0.10       # max 10 % for high-volatility alts
 HIGH_BETA_COINS        = {"DOGE", "SUI", "TON", "NEAR"}   # reduced-size coins
 MIN_USD_RESERVE_PCT    = 0.10       # always keep ≥ 10 % in USD cash
-MIN_TRADE_USD          = 100        # ignore rebalance deltas below $100
+MIN_TRADE_USD          = 5000       # ignore rebalance deltas below $5,000
 
 # ── Risk controls ──────────────────────────────────────────────────────────────
 HARD_STOP_LOSS_PCT          = 0.07   # sell if position drops 7 % from entry
@@ -26,7 +26,7 @@ TRAILING_STOP_PCT            = 0.04  # trail 4 % below running peak price
 
 # ── Strategy signal thresholds ─────────────────────────────────────────────────
 BUY_THRESHOLD          = 0.20       # composite score > 0.20 → eligible to hold
-SELL_THRESHOLD         = -0.20      # composite score < -0.20 → exit position
+SELL_THRESHOLD         = -0.35      # composite score < -0.35 → exit position
 MAX_ACTIVE_POSITIONS   = 3          # keep at most 3 coins at once
 
 # ── Commission ──────────────────────────────────────────────────────────────────

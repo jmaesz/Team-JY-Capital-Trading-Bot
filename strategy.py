@@ -182,8 +182,17 @@ def compute_target_allocations(
 
     for coin in signals:
         if coin in top_coins:
-            # High-beta alts get a tighter position cap
-            cap_pct = HIGH_BETA_MAX_PCT if coin in HIGH_BETA_COINS else MAX_POSITION_PCT
+            score = candidates[coin]
+            # Dynamic position cap based on signal strength
+            if score >= 0.60:
+                cap_pct = 0.40   # strong signal → up to 40%
+            elif score >= 0.40:
+                cap_pct = 0.25   # medium signal → up to 25%
+            else:
+                cap_pct = 0.15   # weak signal → up to 15%
+            # High-beta alts always get a tighter cap
+            if coin in HIGH_BETA_COINS:
+                cap_pct = min(cap_pct, HIGH_BETA_MAX_PCT)
             max_per_coin_usd = portfolio_value * cap_pct
             weight = candidates[coin] / total_score
             targets[coin] = min(investable_usd * weight, max_per_coin_usd)
