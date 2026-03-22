@@ -273,11 +273,15 @@ def run_cycle(tradeable_coins: List[str], precisions: Dict[str, int]) -> None:
         prec = precisions.get(coin, 6)
 
         if delta_usd < -MIN_TRADE_USD:
-            # Reduce position
-            sell_usd = abs(delta_usd)
-            sell_qty = usd_to_qty(sell_usd, price, prec)
-            if sell_qty > 0 and is_tradeable(sell_usd) and covers_commission(coin, sell_qty, price):
-                sells.append((coin, sell_qty, price, score, "rebalance_reduce"))
+            # Reduce position — but let winners run: skip trim if position is profitable
+            entry = get_entry_price(coin)
+            if entry is not None and price > entry:
+                logger.info("SKIP rebalance_reduce %s – position is profitable, letting it run.", coin)
+            else:
+                sell_usd = abs(delta_usd)
+                sell_qty = usd_to_qty(sell_usd, price, prec)
+                if sell_qty > 0 and is_tradeable(sell_usd) and covers_commission(coin, sell_qty, price):
+                    sells.append((coin, sell_qty, price, score, "rebalance_reduce"))
 
         elif delta_usd > MIN_TRADE_USD:
             # Increase / open position
