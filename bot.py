@@ -33,6 +33,7 @@ from config import (
     LOOKBACK,
     SELL_THRESHOLD,
     MIN_TRADE_USD,
+    MIN_HOLD_SECONDS,
     COMMISSION_RATE,
 )
 from logger_setup import setup_logging, log_trade
@@ -52,6 +53,21 @@ from strategy import compute_all_signals, compute_target_allocations
 
 setup_logging()
 logger = logging.getLogger("bot")
+
+# In-memory entry time tracker {coin: timestamp}
+_entry_times: Dict[str, float] = {}
+
+
+def record_entry_time(coin: str) -> None:
+    _entry_times[coin] = time.time()
+
+
+def held_long_enough(coin: str) -> bool:
+    """Return True if position has been held for at least MIN_HOLD_SECONDS."""
+    entry_time = _entry_times.get(coin)
+    if entry_time is None:
+        return True  # unknown entry time, allow reduce
+    return (time.time() - entry_time) >= MIN_HOLD_SECONDS
 
 
 # ── Portfolio helpers ──────────────────────────────────────────────────────────
@@ -167,6 +183,7 @@ def execute_buy(
     log_trade(coin, "BUY", qty, price, signal_score, portfolio_value, reason, success)
     if success:
         record_entry(coin, price)
+        record_entry_time(coin)
     else:
         logger.error("BUY %s failed: %s", coin, resp)
     return success
@@ -273,10 +290,12 @@ def run_cycle(tradeable_coins: List[str], precisions: Dict[str, int]) -> None:
         prec = precisions.get(coin, 6)
 
         if delta_usd < -MIN_TRADE_USD:
-            # Reduce position — but let winners run: skip trim if position is profitable
+            # Reduce position — skip if profitable or not held long enough
             entry = get_entry_price(coin)
             if entry is not None and price > entry:
                 logger.info("SKIP rebalance_reduce %s – position is profitable, letting it run.", coin)
+            elif not held_long_enough(coin):
+                logger.info("SKIP rebalance_reduce %s – minimum hold time not reached.", coin)
             else:
                 sell_usd = abs(delta_usd)
                 sell_qty = usd_to_qty(sell_usd, price, prec)
