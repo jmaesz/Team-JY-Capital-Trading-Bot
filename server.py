@@ -300,6 +300,9 @@ def manual_trade(req: ManualTradeRequest):
     resp    = roostoo.place_order(f"{coin}/USD", side, qty)
     success = bool(resp.get("Success") or resp.get("success"))
 
+    if not success:
+        raise HTTPException(status_code=400, detail=f"Order rejected by exchange: {resp}")
+
     return {"ok": success, "coin": coin, "side": side, "qty": qty, "price": price}
 
 
