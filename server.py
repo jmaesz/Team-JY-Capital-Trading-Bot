@@ -25,12 +25,13 @@ from typing import Optional, List, Dict
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 sys.path.insert(0, os.path.dirname(__file__))
 import api as roostoo
 import bot as trading_bot
 from config import TRADE_LOG, STATE_FILE
-from risk import get_peak, reset_state, get_baseline
+from risk import get_peak, reset_state, get_baseline, usd_to_qty
 
 app = FastAPI(title="JY Capital Dashboard")
 
@@ -234,6 +235,53 @@ def stop_bot():
         _bot_process.kill()
     _bot_process = None
     return {"ok": True, "message": "Bot stopped"}
+
+
+class ManualTradeRequest(BaseModel):
+    coin: str
+    side: str        # "BUY" or "SELL"
+    usd_amount: float
+
+
+@app.post("/api/trade/manual")
+def manual_trade(req: ManualTradeRequest):
+    coin = req.coin.upper()
+    side = req.side.upper()
+
+    if side not in ("BUY", "SELL"):
+        raise HTTPException(status_code=400, detail="side must be BUY or SELL")
+    if req.usd_amount <= 0:
+        raise HTTPException(status_code=400, detail="usd_amount must be positive")
+
+    tick   = roostoo.get_ticker()
+    prices = trading_bot.parse_tickers(tick)
+    price  = prices.get(coin)
+    if not price:
+        raise HTTPException(status_code=400, detail=f"No price found for {coin}")
+
+    info = roostoo.get_exchange_info()
+    precisions = {
+        pair.split("/")[0]: int(meta.get("AmountPrecision", 6))
+        for pair, meta in (info.get("TradePairs") or {}).items()
+        if "/" in pair
+    }
+    prec = precisions.get(coin, 6)
+
+    if side == "BUY":
+        qty = usd_to_qty(req.usd_amount, price, prec)
+    else:
+        bal      = roostoo.get_balance()
+        holdings = trading_bot.parse_balance(bal)
+        available = holdings.get(coin, 0.0)
+        qty = min(round(req.usd_amount / price, prec), round(available, prec))
+
+    if qty <= 0:
+        raise HTTPException(status_code=400, detail="Quantity too small or insufficient balance")
+
+    resp    = roostoo.place_order(f"{coin}/USD", side, qty)
+    success = bool(resp.get("Success") or resp.get("success"))
+
+    return {"ok": success, "coin": coin, "side": side, "qty": qty, "price": price}
 
 
 @app.post("/api/bot/reset")

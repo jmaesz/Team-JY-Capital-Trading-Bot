@@ -120,6 +120,12 @@ export default function App() {
   const [error, setError]                 = useState<string | null>(null);
   const [success, setSuccess]             = useState<string | null>(null);
 
+  // Manual trade state
+  const [manualCoin,    setManualCoin]    = useState("BTC");
+  const [manualSide,    setManualSide]    = useState<"BUY"|"SELL">("BUY");
+  const [manualUsd,     setManualUsd]     = useState("");
+  const [manualLoading, setManualLoading] = useState(false);
+
   const fetchAll = useCallback(async () => {
     try {
       const [pRes, tRes, mRes, hRes, sRes] = await Promise.all([
@@ -186,6 +192,34 @@ export default function App() {
     }
     setBotLoading(false);
   }
+
+  async function executeTrade() {
+    const usd = parseFloat(manualUsd);
+    if (!usd || usd <= 0) { setError("Enter a valid USD amount."); return; }
+    setManualLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res  = await fetch(`${API}/api/trade/manual`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coin: manualCoin, side: manualSide, usd_amount: usd }),
+      });
+      const body = await res.json();
+      if (!res.ok || !body.ok) {
+        setError(body.detail ?? body.message ?? "Trade failed.");
+      } else {
+        setSuccess(`${manualSide} ${body.qty} ${manualCoin} @ $${fmt(body.price)} executed.`);
+        setManualUsd("");
+        await fetchAll();
+      }
+    } catch {
+      setError("Server unreachable.");
+    }
+    setManualLoading(false);
+  }
+
+  const COINS = ["BTC","ETH","BNB","SOL","XRP","ADA","AVAX","LINK","DOT","UNI","DOGE","SUI","TON","NEAR"];
 
   const pnlPositive = portfolio ? portfolio.pnl >= 0 : undefined;
   const initialWallet = portfolio?.initial_wallet ?? 50_000;
@@ -430,6 +464,74 @@ export default function App() {
               Chart will populate once the bot starts trading
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* ── Manual Trade ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-semibold text-foreground">Manual Trade</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-end gap-3">
+            {/* Coin selector */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">Coin</label>
+              <select
+                value={manualCoin}
+                onChange={e => setManualCoin(e.target.value)}
+                className="bg-muted text-foreground text-sm rounded-md px-3 py-2 border border-border focus:outline-none"
+              >
+                {COINS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            {/* BUY / SELL toggle */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">Side</label>
+              <div className="flex rounded-md overflow-hidden border border-border">
+                <button
+                  onClick={() => setManualSide("BUY")}
+                  className={cn("px-4 py-2 text-sm font-medium transition-colors",
+                    manualSide === "BUY" ? "bg-emerald-500/30 text-emerald-400" : "bg-muted text-muted-foreground hover:text-foreground"
+                  )}
+                >BUY</button>
+                <button
+                  onClick={() => setManualSide("SELL")}
+                  className={cn("px-4 py-2 text-sm font-medium transition-colors",
+                    manualSide === "SELL" ? "bg-red-500/30 text-red-400" : "bg-muted text-muted-foreground hover:text-foreground"
+                  )}
+                >SELL</button>
+              </div>
+            </div>
+
+            {/* USD amount */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">USD Amount</label>
+              <input
+                type="number"
+                min="1"
+                placeholder="e.g. 10000"
+                value={manualUsd}
+                onChange={e => setManualUsd(e.target.value)}
+                className="bg-muted text-foreground text-sm rounded-md px-3 py-2 border border-border focus:outline-none w-40"
+              />
+            </div>
+
+            {/* Submit */}
+            <button
+              onClick={executeTrade}
+              disabled={manualLoading || !manualUsd}
+              className={cn(
+                "px-5 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50",
+                manualSide === "BUY"
+                  ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
+                  : "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+              )}
+            >
+              {manualLoading ? <><RefreshCw className="inline h-3.5 w-3.5 animate-spin mr-1" />Working...</> : `${manualSide} ${manualCoin}`}
+            </button>
+          </div>
         </CardContent>
       </Card>
 
