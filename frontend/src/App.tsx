@@ -277,7 +277,7 @@ export default function App() {
           {!confirmReset ? (
             <button
               onClick={() => setConfirmReset(true)}
-              disabled={botLoading || resetLoading}
+              disabled={modeLoading || resetLoading}
               className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors disabled:opacity-50"
             >
               {resetLoading
