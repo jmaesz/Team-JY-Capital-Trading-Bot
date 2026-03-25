@@ -48,6 +48,7 @@ from risk import (
     qty_to_usd,
     is_tradeable,
     get_entry_price,
+    get_mode,
 )
 from strategy import compute_all_signals, compute_target_allocations
 
@@ -240,22 +241,42 @@ def run_cycle(tradeable_coins: List[str], precisions: Dict[str, int]) -> None:
     logger.info("Signals: %s", {c: f"{s:.3f}" for c, s in signals.items()})
 
     # 3. Risk checks
+    mode      = get_mode()
     defensive = is_defensive_mode(portfolio_value)
 
-    # 4. Stop-loss exits (always run, even in defensive mode)
+    # 4. Stop-loss / manual-stop exits (always run)
     for coin, qty in list(holdings.items()):
         if coin == "USD":
             continue
         price = prices.get(coin, 0.0)
         if price > 0:
-            update_position_peak(coin, price)   # ratchet trailing stop peak
-        if price > 0 and should_stop_loss(coin, price):
-            qty_rounded = round(qty, precisions.get(coin, 6))
-            execute_sell(coin, qty_rounded, price, signals.get(coin, -1.0), portfolio_value, "stop_loss")
+            update_position_peak(coin, price)
 
-    # Refresh balance after stop-loss sells
+        if mode == "manual":
+            # Manual mode: sell immediately once position is up 5% then starts to drop
+            entry = get_entry_price(coin)
+            if entry and entry > 0 and price > 0:
+                gain_pct = (price - entry) / entry
+                from risk import _state as _rs
+                peak_price = _rs.get("peak_prices", {}).get(coin, entry)
+                if gain_pct >= 0.05 and price < peak_price:
+                    qty_rounded = round(qty, precisions.get(coin, 6))
+                    logger.info("MANUAL STOP %s – was up ≥5%%, now dropping. Selling.", coin)
+                    execute_sell(coin, qty_rounded, price, signals.get(coin, 0.0), portfolio_value, "manual_stop")
+        else:
+            if price > 0 and should_stop_loss(coin, price):
+                qty_rounded = round(qty, precisions.get(coin, 6))
+                execute_sell(coin, qty_rounded, price, signals.get(coin, -1.0), portfolio_value, "stop_loss")
+
+    # Refresh balance after stop/manual sells
     holdings = parse_balance(api.get_balance() or {})
     portfolio_value, coin_usd_values = compute_portfolio_value(holdings, prices)
+
+    # In manual mode: no automatic buys or rebalancing — user trades manually
+    if mode == "manual":
+        logger.info("Manual mode – skipping auto rebalance.")
+        logger.info("─── Cycle complete ───\n")
+        return
 
     # 5. Target allocations
     targets = compute_target_allocations(
@@ -267,7 +288,6 @@ def run_cycle(tradeable_coins: List[str], precisions: Dict[str, int]) -> None:
     )
 
     # 6. Execute rebalance
-    # Sells first (free up USD), then buys
     sells = []
     buys  = []
 
@@ -303,7 +323,6 @@ def run_cycle(tradeable_coins: List[str], precisions: Dict[str, int]) -> None:
                     sells.append((coin, sell_qty, price, score, "rebalance_reduce"))
 
         elif delta_usd > MIN_TRADE_USD:
-            # Increase / open position
             buy_usd = delta_usd
             buy_qty = usd_to_qty(buy_usd, price, prec)
             if buy_qty > 0 and is_tradeable(buy_usd):

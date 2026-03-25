@@ -98,6 +98,16 @@ def get_baseline() -> float:
     return _state.get("baseline", 0.0)
 
 
+def get_mode() -> str:
+    """Return current trading mode: 'auto' or 'manual'."""
+    return _state.get("mode", "auto")
+
+
+def set_mode(mode: str) -> None:
+    _state["mode"] = mode
+    _save_state(_state)
+
+
 # ── Risk checks ────────────────────────────────────────────────────────────────
 
 def is_defensive_mode(current_portfolio: float) -> bool:

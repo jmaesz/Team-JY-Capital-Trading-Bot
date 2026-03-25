@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import api as roostoo
 import bot as trading_bot
 from config import TRADE_LOG, STATE_FILE
-from risk import get_peak, reset_state, get_baseline, usd_to_qty, get_entry_price
+from risk import get_peak, reset_state, get_baseline, usd_to_qty, get_entry_price, get_mode, set_mode
 
 app = FastAPI(title="JY Capital Dashboard")
 
@@ -216,7 +216,15 @@ def get_status():
     if rows:
         last_cycle = rows[-1].get("timestamp_utc")
 
-    return {"running": running, "last_cycle": last_cycle}
+    return {"running": running, "last_cycle": last_cycle, "mode": get_mode()}
+
+
+@app.post("/api/mode/{mode}")
+def set_trading_mode(mode: str):
+    if mode not in ("auto", "manual"):
+        raise HTTPException(status_code=400, detail="mode must be 'auto' or 'manual'")
+    set_mode(mode)
+    return {"ok": True, "mode": mode}
 
 
 @app.post("/api/bot/start")

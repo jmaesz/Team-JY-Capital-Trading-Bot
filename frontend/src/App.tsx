@@ -57,7 +57,7 @@ interface Metrics {
   calmar: number | null; max_drawdown_pct: number;
 }
 interface ChartPoint { time: string; value: number }
-interface BotStatus  { running: boolean; last_cycle: string | null }
+interface BotStatus  { running: boolean; last_cycle: string | null; mode: "auto" | "manual" }
 
 function fmt(n: number) {
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -116,7 +116,7 @@ export default function App() {
   const [history,   setHistory]   = useState<ChartPoint[]>([]);
   const [status,    setStatus]    = useState<BotStatus | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
-  const [botLoading, setBotLoading]       = useState(false);
+  const [modeLoading, setModeLoading]     = useState(false);
   const [resetLoading, setResetLoading]   = useState(false);
   const [confirmReset, setConfirmReset]   = useState(false);
   const [connected, setConnected]         = useState(true);
@@ -177,23 +177,21 @@ export default function App() {
     setResetLoading(false);
   }
 
-  async function toggleBot() {
-    if (!connected) {
-      setError("Cannot reach server. Run: python server.py");
-      return;
-    }
-    setBotLoading(true);
+  async function toggleMode() {
+    if (!connected) { setError("Cannot reach server."); return; }
+    setModeLoading(true);
     setError(null);
     try {
-      const endpoint = status?.running ? "/api/bot/stop" : "/api/bot/start";
-      const res  = await fetch(`${API}${endpoint}`, { method: "POST" });
+      const next = status?.mode === "manual" ? "auto" : "manual";
+      const res  = await fetch(`${API}/api/mode/${next}`, { method: "POST" });
       const body = await res.json();
-      if (!body.ok) setError(body.message ?? "Unknown error");
+      if (!body.ok) setError(body.detail ?? "Failed to switch mode.");
+      else setSuccess(`Switched to ${next.toUpperCase()} trading mode.`);
       await fetchAll();
     } catch {
-      setError("Server unreachable. Make sure python server.py is running.");
+      setError("Server unreachable.");
     }
-    setBotLoading(false);
+    setModeLoading(false);
   }
 
   async function executeTrade() {
@@ -249,29 +247,29 @@ export default function App() {
           {/* Connection indicator */}
           <span className={cn("h-2 w-2 rounded-full", connected ? "bg-emerald-400" : "bg-red-400")} />
 
-          {/* Bot status badge */}
+          {/* Mode badge */}
           {status && (
-            <Badge variant={status.running ? "success" : "danger"}>
-              {status.running ? "Bot Running" : "Bot Stopped"}
+            <Badge variant={status.mode === "manual" ? "warning" : "success"}>
+              {status.mode === "manual" ? "Manual Mode" : "Auto Mode"}
             </Badge>
           )}
 
-          {/* Start / Stop button */}
+          {/* Auto / Manual mode toggle */}
           <button
-            onClick={toggleBot}
-            disabled={botLoading || resetLoading}
+            onClick={toggleMode}
+            disabled={modeLoading || resetLoading}
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50",
-              status?.running
-                ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+              status?.mode === "manual"
+                ? "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
                 : "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
             )}
           >
-            {botLoading
+            {modeLoading
               ? <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Working...</>
-              : status?.running
-                ? <><Square className="h-3.5 w-3.5" /> Stop Trading</>
-                : <><Play   className="h-3.5 w-3.5" /> Start Trading</>
+              : status?.mode === "manual"
+                ? <><Square className="h-3.5 w-3.5" /> Manual Mode</>
+                : <><Play   className="h-3.5 w-3.5" /> Auto Mode</>
             }
           </button>
 
