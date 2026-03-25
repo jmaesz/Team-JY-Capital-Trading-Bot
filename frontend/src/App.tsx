@@ -41,7 +41,10 @@ function CoinIcon({ coin }: { coin: string }) {
 interface Portfolio {
   total: number; cash: number; pnl: number; pnl_pct: number;
   drawdown_pct: number; peak: number; initial_wallet: number;
-  holdings: { coin: string; qty: number; value: number; price: number }[];
+  holdings: {
+    coin: string; qty: number; value: number; price: number;
+    entry_price: number | null; position_pnl: number | null; position_pnl_pct: number | null;
+  }[];
 }
 interface Trade {
   timestamp_utc: string; coin: string; side: string;
@@ -548,23 +551,38 @@ export default function App() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border">
-                    {["Coin","Qty","Price","Value"].map((h, i) => (
-                      <th key={h} className={cn("py-3 px-6 text-muted-foreground font-medium", i > 0 ? "text-right" : "text-left")}>{h}</th>
+                    {["Coin","Qty","Entry Price","Current Price","Value","P&L","P&L %"].map((h, i) => (
+                      <th key={h} className={cn("py-3 px-4 text-muted-foreground font-medium whitespace-nowrap", i > 0 ? "text-right" : "text-left")}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {portfolio.holdings.map((h) => (
                     <tr key={h.coin} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                      <td className="px-6 py-3">
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-2 font-medium">
                           <CoinIcon coin={h.coin} />
                           {h.coin}
                         </div>
                       </td>
-                      <td className="px-6 py-3 text-right text-muted-foreground">{h.qty.toFixed(4)}</td>
-                      <td className="px-6 py-3 text-right text-muted-foreground">${fmt(h.price)}</td>
-                      <td className="px-6 py-3 text-right font-medium">${fmt(h.value)}</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground">{h.qty.toFixed(4)}</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground">
+                        {h.entry_price != null ? `$${fmt(h.entry_price)}` : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-right text-muted-foreground">${fmt(h.price)}</td>
+                      <td className="px-4 py-3 text-right font-medium">${fmt(h.value)}</td>
+                      <td className={cn("px-4 py-3 text-right font-medium",
+                        h.position_pnl == null ? "text-muted-foreground" :
+                        h.position_pnl >= 0 ? "text-emerald-400" : "text-red-400"
+                      )}>
+                        {h.position_pnl != null ? `${h.position_pnl >= 0 ? "+" : ""}$${fmt(h.position_pnl)}` : "—"}
+                      </td>
+                      <td className={cn("px-4 py-3 text-right font-medium",
+                        h.position_pnl_pct == null ? "text-muted-foreground" :
+                        h.position_pnl_pct >= 0 ? "text-emerald-400" : "text-red-400"
+                      )}>
+                        {h.position_pnl_pct != null ? `${h.position_pnl_pct >= 0 ? "+" : ""}${h.position_pnl_pct.toFixed(2)}%` : "—"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

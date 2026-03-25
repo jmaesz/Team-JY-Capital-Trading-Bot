@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import api as roostoo
 import bot as trading_bot
 from config import TRADE_LOG, STATE_FILE
-from risk import get_peak, reset_state, get_baseline, usd_to_qty
+from risk import get_peak, reset_state, get_baseline, usd_to_qty, get_entry_price
 
 app = FastAPI(title="JY Capital Dashboard")
 
@@ -135,15 +135,26 @@ def get_portfolio():
     pnl      = total - baseline
     pnl_pct  = pnl / baseline * 100
 
-    holdings = [
-        {
-            "coin":  coin,
-            "qty":   holdings_raw.get(coin, 0.0),
-            "value": usd_val,
-            "price": prices.get(coin, 0.0),
-        }
-        for coin, usd_val in sorted(coin_values.items(), key=lambda x: -x[1])
-    ]
+    holdings = []
+    for coin, usd_val in sorted(coin_values.items(), key=lambda x: -x[1]):
+        qty        = holdings_raw.get(coin, 0.0)
+        price      = prices.get(coin, 0.0)
+        entry      = get_entry_price(coin)
+        if entry and entry > 0 and qty > 0:
+            position_pnl     = (price - entry) * qty
+            position_pnl_pct = (price - entry) / entry * 100
+        else:
+            position_pnl     = None
+            position_pnl_pct = None
+        holdings.append({
+            "coin":            coin,
+            "qty":             qty,
+            "value":           usd_val,
+            "price":           price,
+            "entry_price":     entry,
+            "position_pnl":    round(position_pnl, 2)     if position_pnl     is not None else None,
+            "position_pnl_pct": round(position_pnl_pct, 2) if position_pnl_pct is not None else None,
+        })
 
     return {
         "total":         round(total, 2),
