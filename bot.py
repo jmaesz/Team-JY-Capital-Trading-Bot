@@ -259,7 +259,7 @@ def run_cycle(tradeable_coins: List[str], precisions: Dict[str, int]) -> None:
                 gain_pct = (price - entry) / entry
                 from risk import _state as _rs
                 peak_price = _rs.get("peak_prices", {}).get(coin, entry)
-                if gain_pct >= 0.05 and price < peak_price:
+                if gain_pct >= 0.05 and price < peak_price * 0.99:
                     qty_rounded = round(qty, precisions.get(coin, 6))
                     logger.info("MANUAL STOP %s – was up ≥5%%, now dropping. Selling.", coin)
                     execute_sell(coin, qty_rounded, price, signals.get(coin, 0.0), portfolio_value, "manual_stop")
